@@ -17,7 +17,12 @@ fn main() -> ExitCode {
                     println!("{}", error);
                     ExitCode::FAILURE
                 }
-                Ok(_) => ExitCode::SUCCESS,
+                Ok(code) => {
+                    match code {
+                        None => ExitCode::FAILURE,
+                        Some(n) => ExitCode::from(n as u8)
+                    }
+                },
             }
         }
         Err(error) => {
@@ -27,7 +32,7 @@ fn main() -> ExitCode {
     }
 }
 
-async fn run () -> Result<(), Error>{
+async fn run () -> Result<Option<i32>, Error>{
     let cli = CliArgs::parse();
     let config = StreamConfig::try_from(std::fs::read_to_string(cli.configuration)?.as_str())?;
     println!("{:?}", config);
@@ -40,8 +45,6 @@ async fn run () -> Result<(), Error>{
     
     println!("{:?}", ffmpeg);
     //let stdout = ffmpeg.stdout.take().unwrap();
-
-    _ = ffmpeg.wait().await?;
-    println!("process exited");
-    Ok(())
+    
+    Ok(ffmpeg.wait().await?.code())
 }
