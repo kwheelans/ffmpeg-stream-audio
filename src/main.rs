@@ -1,9 +1,9 @@
 mod cli;
-mod config;
+mod configuration;
 mod error;
 
 use crate::cli::CliArgs;
-use crate::config::{CommandConfig, StreamConfig};
+use crate::configuration::{CommandConfig, StreamConfig};
 use crate::error::Error;
 use clap::Parser;
 use std::process::{ExitCode, Stdio};

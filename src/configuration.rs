@@ -11,6 +11,7 @@ const INPUT_OPT: &str = "-i";
 const CODEC_OPT: &str = "-codec:a";
 const SAMPLE_RATE_OPT: &str = "-ar";
 const CHANNELS_OPT: &str = "-ac";
+const CHANNEL_LAYOUT_OPT: &str = "-channel_layout";
 const SAMPLE_FORMAT: &str = "-sample_fmt";
 const CONTENT_TYPE_OPT: &str = "-content_type";
 
@@ -26,25 +27,34 @@ trait AudioCodec: CommandConfig {}
 
 #[derive(Deserialize, Debug)]
 pub struct StreamConfig {
+    general: GeneralConfig,
     input: StreamInput,
     output: StreamOutput,
+}
+#[derive(Deserialize, Debug)]
+struct GeneralConfig {
+    #[serde(default)]
+    overwrite: bool,
+    #[serde(default)]
+    hide_banner: bool,
 }
 
 #[derive(Deserialize, Debug)]
 struct StreamInput {
     input: String,
     input_type: String,
-    #[serde(default)]
-    overwrite: bool,
     sample_rate: Option<u32>,
+    channels: Option<u8>,
+    channel_layout: Option<String>,
     sample_format: Option<String>,
+
     codec: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
 struct StreamOutput {
     output: String,
-    channels: Option<String>,
+    channels: Option<u8>,
     sample_rate: u32,
     codec: Box<dyn AudioCodec>,
 
@@ -57,6 +67,20 @@ struct Flac {
     compression_level: Option<u8>,
 }
 
+impl CommandConfig for GeneralConfig {
+    fn to_vec(&self) -> Vec<OsString> {
+        let overwrite = match self.overwrite {
+            true => "-y",
+            false => "-n",
+        };
+        let mut general = vec![overwrite.into()];
+        if self.hide_banner {
+            general.push("-hide_banner".into());
+        }
+        general
+    }
+}
+
 impl TryFrom<&str> for StreamConfig {
     type Error = Error;
 
@@ -67,19 +91,26 @@ impl TryFrom<&str> for StreamConfig {
 
 impl CommandConfig for StreamConfig {
     fn to_vec(&self) -> Vec<OsString> {
-        let mut value = self.input.to_vec();
-        value.extend(self.output.to_vec());
-        value
+        let mut config = self.general.to_vec();
+        config.extend(self.input.to_vec());
+        config.extend(self.output.to_vec());
+        config
     }
 }
 
 impl CommandConfig for StreamInput {
     fn to_vec(&self) -> Vec<OsString> {
-        let overwrite = match self.overwrite {
-            true => "-y",
-            false => "-n",
-        };
-        let mut input = vec!["-hide_banner".into(), overwrite.into()];
+        let mut input = Vec::new();
+
+        if let Some(channels) = self.channels {
+            input.push(CHANNELS_OPT.into());
+            input.push(channels.to_string().into());
+        }
+
+        if let Some(layout) = &self.channel_layout {
+            input.push(CHANNEL_LAYOUT_OPT.into());
+            input.push(layout.into());
+        }
 
         if let Some(codec) = &self.codec {
             input.push(CODEC_OPT.into());
@@ -110,11 +141,11 @@ impl CommandConfig for StreamOutput {
     fn to_vec(&self) -> Vec<OsString> {
         let mut value = vec![SAMPLE_RATE_OPT.into(), self.sample_rate.to_string().into()];
 
-        if let Some(channels) = &self.channels {
+        if let Some(channels) = self.channels {
             value.push(CHANNELS_OPT.into());
-            value.push(channels.into());
+            value.push(channels.to_string().into());
         }
-        
+
         value.extend(self.codec.to_vec());
 
         if let Some(content_type) = &self.content_type {

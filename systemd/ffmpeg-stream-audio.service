@@ -1,0 +1,14 @@
+[Unit]
+Description=Stream audio from input with ffmpeg
+After=network.target
+
+[Service]
+Type=simple
+PrivateUsers=true
+Environment="CONFIG_FILE=/etc/ffmpeg-stream-audio/config.toml"
+ExecStart=/usr/bin/ffmpeg-stream-audio $CONFIG_FILE
+Restart=on-failure
+RestartSec=15s
+
+[Install]
+WantedBy=multi-user.target
