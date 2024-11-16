@@ -11,29 +11,22 @@ use tokio::process::Command;
 use tracing::level_filters::LevelFilter;
 use tracing::{debug, error, info};
 
-fn main() -> ExitCode {
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> ExitCode {
     let cli = CliArgs::parse();
     tracing_subscriber::fmt()
         .with_max_level(cli.log_level.unwrap_or(LevelFilter::INFO))
         .init();
-    match tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-    {
-        Ok(rt) => match rt.block_on(run(cli)) {
-            Err(error) => {
-                error!("{}", error);
-                ExitCode::FAILURE
-            }
-            Ok(code) => match code {
-                None => ExitCode::FAILURE,
-                Some(n) => ExitCode::from(n as u8),
-            },
-        },
+
+    match run(cli).await {
         Err(error) => {
             error!("{}", error);
             ExitCode::FAILURE
         }
+        Ok(code) => match code {
+            None => ExitCode::FAILURE,
+            Some(n) => ExitCode::from(n as u8),
+        },
     }
 }
 
