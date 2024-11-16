@@ -83,11 +83,11 @@ async fn listen_for_shutdown() -> i32 {
 
     let exit = tokio::select! {
         _ = sig_ctrl_break.recv() => {
-            debug!("Received CTRL-BREAK.")
+            debug!("Received CTRL-BREAK.");
             1
         },
         _ = sig_ctrl_c.recv() => {
-            debug!("Received CTRL-C.")
+            debug!("Received CTRL-C.");
             1
         },
     };
