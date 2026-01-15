@@ -6,7 +6,7 @@ mod ui;
 
 use crate::cli::CliArgs;
 use crate::command::{CommandAction, command_orchestration};
-use crate::configuration::{CommandConfig, StreamConfig};
+use crate::configuration::{CommandConfig, Configuration};
 use crate::error::Error;
 use crate::ui::serve_ui;
 use chrono::{DateTime, Local};
@@ -24,7 +24,8 @@ use tracing::{debug, error, info};
 struct AppState {
     task_status: Mutex<TaskStatus>,
     sender: Sender<CommandAction>,
-    stream_config: Vec<OsString>,
+    ffmpeg_config: Vec<OsString>,
+    css: String,
 }
 
 #[derive(Debug, Default)]
@@ -60,7 +61,7 @@ async fn main() -> ExitCode {
 }
 
 async fn run(cli: CliArgs) -> Result<Option<i32>, Error> {
-    let config = StreamConfig::try_from(std::fs::read_to_string(cli.configuration)?.as_str())?;
+    let config = Configuration::try_from(std::fs::read_to_string(cli.configuration)?.as_str())?;
     debug!("{:?}", config);
 
     // Initialize channel
@@ -70,11 +71,17 @@ async fn run(cli: CliArgs) -> Result<Option<i32>, Error> {
     let state = Arc::new(AppState {
         task_status: Mutex::new(TaskStatus::default()),
         sender,
-        stream_config: config.to_vec(),
+        ffmpeg_config: config.ffmpeg().to_vec(),
+        css: config.ui().get_stylesheet_href(),
     });
 
     // Setup address to listen on
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8080").await?;
+    let listener = tokio::net::TcpListener::bind(format!(
+        "{}:{}",
+        config.ui().listen_address(),
+        config.ui().port()
+    ))
+    .await?;
 
     // Start waiting for commands from UI
     tokio::spawn(command_orchestration(receiver, state.clone()));

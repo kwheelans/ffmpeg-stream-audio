@@ -1,7 +1,8 @@
 use crate::error::Error;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::ffi::OsString;
 use std::fmt::Debug;
+use strum::{AsRefStr, EnumString};
 
 // General Options
 const FORMAT_OPT: &str = "-f";
@@ -18,12 +19,61 @@ const CONTENT_TYPE_OPT: &str = "-content_type";
 // FLAC Options
 const COMPRESSION_LEVEL_OPT: &str = "-compression_level";
 
-pub trait CommandConfig: Debug {
+// PICO CSS
+const PICO_CSS_CDN_BASE: &str = "https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/";
+
+pub trait CommandConfig: Debug + Send {
     fn to_vec(&self) -> Vec<OsString>;
 }
 
 #[typetag::deserialize(tag = "codec")]
-trait AudioCodec: CommandConfig {}
+trait AudioCodec: CommandConfig + Send {}
+
+#[derive(Debug, Clone, Copy, EnumString, AsRefStr, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "lowercase")]
+pub enum PicoCssColour {
+    Amber,
+    Blue,
+    Cyan,
+    Fuchsia,
+    Green,
+    Grey,
+    Indigo,
+    Jade,
+    Lime,
+    Orange,
+    Pink,
+    Pumpkin,
+    Purple,
+    Red,
+    Sand,
+    Slate,
+    Violet,
+    Yellow,
+    Zinc,
+}
+
+impl PicoCssColour {
+    pub fn get_pico_css_name(&self) -> String {
+        format!("pico.classless.{}.min.css", self.as_ref())
+    }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Configuration {
+    ffmpeg: StreamConfig,
+    #[serde(default)]
+    ui: UiConfig,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(default)]
+pub struct UiConfig {
+    port: u16,
+    listen_address: String,
+    pico_css_color: PicoCssColour,
+}
 
 #[derive(Deserialize, Debug)]
 pub struct StreamConfig {
@@ -31,11 +81,9 @@ pub struct StreamConfig {
     input: StreamInput,
     output: StreamOutput,
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 struct GeneralConfig {
-    #[serde(default)]
     overwrite: bool,
-    #[serde(default)]
     hide_banner: bool,
 }
 
@@ -56,7 +104,7 @@ struct StreamOutput {
     channels: Option<u8>,
     sample_rate: u32,
     sample_format: Option<String>,
-    codec: Box<dyn AudioCodec>,
+    codec: Box<dyn AudioCodec + Send>,
 
     container: Option<String>,
     content_type: Option<String>,
@@ -72,6 +120,52 @@ struct PulseCodeModulation {
     encoder: String,
 }
 
+impl TryFrom<&str> for Configuration {
+    type Error = Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(toml::from_str(value)?)
+    }
+}
+
+impl Configuration {
+    pub fn ffmpeg(&self) -> &StreamConfig {
+        &self.ffmpeg
+    }
+
+    pub fn ui(&self) -> &UiConfig {
+        &self.ui
+    }
+}
+
+impl Default for UiConfig {
+    fn default() -> Self {
+        Self {
+            port: 8080,
+            listen_address: "0.0.0.0".to_string(),
+            pico_css_color: PicoCssColour::Indigo,
+        }
+    }
+}
+
+impl UiConfig {
+    pub fn get_stylesheet_href(&self) -> String {
+        format!(
+            "{}{}",
+            PICO_CSS_CDN_BASE,
+            self.pico_css_color.get_pico_css_name()
+        )
+    }
+
+    pub fn port(&self) -> u16 {
+        self.port
+    }
+
+    pub fn listen_address(&self) -> &str {
+        &self.listen_address
+    }
+}
+
 impl CommandConfig for GeneralConfig {
     fn to_vec(&self) -> Vec<OsString> {
         let overwrite = match self.overwrite {
@@ -83,14 +177,6 @@ impl CommandConfig for GeneralConfig {
             general.push("-hide_banner".into());
         }
         general
-    }
-}
-
-impl TryFrom<&str> for StreamConfig {
-    type Error = Error;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Ok(toml::from_str(value)?)
     }
 }
 

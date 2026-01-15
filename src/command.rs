@@ -9,7 +9,7 @@ use strum::{Display, EnumString};
 use tokio::process::{Child, Command};
 use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinHandle;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 #[derive(Debug, Copy, Clone, Display, EnumString)]
 pub enum CommandAction {
@@ -36,7 +36,7 @@ async fn start_command(state: Arc<AppState>) {
         Some(handle) if !handle.is_finished() => {
             warn!("Task is already running")
         }
-        _ => task_status.handle = Some(start_task(state.stream_config.clone())),
+        _ => task_status.handle = Some(start_task(state.ffmpeg_config.clone())),
     }
 }
 
@@ -84,6 +84,7 @@ fn start_task(config: Vec<OsString>) -> JoinHandle<Option<i32>> {
 }
 
 fn ffmpeg_cmd(config: Vec<OsString>) -> std::io::Result<Child> {
+    debug!("FFMPEG Args: {:?}", config);
     Command::new("ffmpeg")
         .stdout(Stdio::piped())
         .args(config)

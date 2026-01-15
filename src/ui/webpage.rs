@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 const PAGE_TITLE: &str = "Control Task Test";
 
-async fn base() -> Markup {
+async fn base(css_path: &str) -> Markup {
     html! {
         (DOCTYPE)
         html {
@@ -13,7 +13,7 @@ async fn base() -> Markup {
                 meta charset="utf-8";
                 meta name="viewport" content="width=device-width, initial-scale=1";
                 meta name="color-scheme" content="light dark";
-                link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.indigo.min.css";
+                link rel="stylesheet" href=(css_path);
             }
         }
     }
@@ -31,7 +31,7 @@ async fn title(title: &str) -> Markup {
 pub async fn index_page(state: Arc<AppState>) -> Markup {
     let task_status = state.task_status.lock().await;
     html! {
-        (base().await)
+        (base(state.css.as_str()).await)
         body {
             (title(PAGE_TITLE).await)
             main {

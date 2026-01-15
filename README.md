@@ -6,7 +6,17 @@ ffmpeg -f alsa -i default -ar 48000 -ac 2 -c:a flac -compression_level 1 -f ogg 
 
 ## Configuration
 
-### General
+### UI
+
+| Option         | Type   | Description                             |
+|----------------|--------|-----------------------------------------|
+| port           | u16    | Port the UI webserver will listen on    |
+| listen_address | String | Address the UI webserver with listen on |
+| pico_css_color | String | Colour PicoCSS will use for the UI      |
+
+
+### FFMPEG
+#### General
 
 | Option      | Type    | Description        |
 |-------------|---------|--------------------|
@@ -14,7 +24,7 @@ ffmpeg -f alsa -i default -ar 48000 -ac 2 -c:a flac -compression_level 1 -f ogg 
 | overwrite   | boolean | Overwrite output   |
 
 
-### Input
+#### Input
 
 | Option         | Type   | Description                                 |
 |----------------|--------|---------------------------------------------|
@@ -25,7 +35,7 @@ ffmpeg -f alsa -i default -ar 48000 -ac 2 -c:a flac -compression_level 1 -f ogg 
 | channel_layout | String | Channel layout ie. mono, stereo             |
 
 
-### Output
+#### Output
 
 | Option        | Type   | Description                       |
 |---------------|--------|-----------------------------------|
@@ -38,22 +48,27 @@ ffmpeg -f alsa -i default -ar 48000 -ac 2 -c:a flac -compression_level 1 -f ogg 
 
 ### Example Configuration
 ```toml
-[general]
+[ui]
+port = 8080
+listen_address = "0.0.0.0"
+pico_css_color = "Indigo"
+
+[ffmpeg.general]
 hide_banner = true
 overwrite = true
 log_level = "info"
 
-[input]
+[ffmpeg.input]
 input = "hw:2,0"
 input_type = "alsa"
 
-[output]
+[ffmpeg.output]
 output = "/path/to/output.flac"
 channels = 2
 sample_rate = 48000
 container = "ogg"
 
-[output.codec]
+[ffmpeg.output.codec]
 codec = "flac"
 compression_level = 2
 ```
