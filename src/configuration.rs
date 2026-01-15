@@ -46,7 +46,7 @@ struct StreamInput {
     sample_rate: Option<u32>,
     channels: Option<u8>,
     channel_layout: Option<String>,
-    sample_format: Option<String>,
+//    sample_format: Option<String>,
 
     codec: Option<String>,
 }
@@ -56,15 +56,21 @@ struct StreamOutput {
     output: String,
     channels: Option<u8>,
     sample_rate: u32,
+    sample_format: Option<String>,
     codec: Box<dyn AudioCodec>,
 
-    container: String,
+    container: Option<String>,
     content_type: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
 struct Flac {
     compression_level: Option<u8>,
+}
+
+#[derive(Deserialize, Debug)]
+struct PulseCodeModulation {
+    encoder: String,
 }
 
 impl CommandConfig for GeneralConfig {
@@ -117,11 +123,6 @@ impl CommandConfig for StreamInput {
             input.push(codec.into());
         }
 
-        if let Some(sample_format) = &self.sample_format {
-            input.push(SAMPLE_FORMAT.into());
-            input.push(sample_format.as_str().into());
-        }
-
         input.push(FORMAT_OPT.into());
         input.push(self.input_type.as_str().into());
 
@@ -141,6 +142,11 @@ impl CommandConfig for StreamOutput {
     fn to_vec(&self) -> Vec<OsString> {
         let mut value = vec![SAMPLE_RATE_OPT.into(), self.sample_rate.to_string().into()];
 
+        if let Some(sample_format) = &self.sample_format {
+            value.push(SAMPLE_FORMAT.into());
+            value.push(sample_format.as_str().into());
+        }
+
         if let Some(channels) = self.channels {
             value.push(CHANNELS_OPT.into());
             value.push(channels.to_string().into());
@@ -153,9 +159,11 @@ impl CommandConfig for StreamOutput {
             value.push(OsString::from(content_type));
         }
 
-        value.push(FORMAT_OPT.into());
-        value.push(self.container.as_str().into());
-
+        if let Some(container) = &self.container {
+            value.push(FORMAT_OPT.into());
+            value.push(container.as_str().into());
+        }
+        
         value.push(self.output.as_str().into());
         value
     }
@@ -174,5 +182,14 @@ impl CommandConfig for Flac {
         }
 
         codec
+    }
+}
+
+#[typetag::deserialize(name = "pcm")]
+impl AudioCodec for PulseCodeModulation {}
+
+impl CommandConfig for PulseCodeModulation {
+    fn to_vec(&self) -> Vec<OsString> {
+        vec![CODEC_OPT.into(), format!("pcm_{}", &self.encoder).into()]
     }
 }

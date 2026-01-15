@@ -1,6 +1,8 @@
 # FFMPEG Stream Audio
 
-
+```shell
+ffmpeg -f alsa -i default -ar 48000 -ac 2 -c:a flac -compression_level 1 -f ogg -content_type 'application/ogg' "icecast://source:${SOURCE_PASSWORD}@${HOST}/stream"
+```
 
 ## Configuration
 
@@ -19,21 +21,20 @@
 | input          | String | Input file or device                        |
 | input_type     | String | Input type ie alsa                          |
 | sample_rate    | u32    | Input sample frequency                      |
-| sample_format  | String | Input sample format ie. s16le, u16le, f32le |
 | channels       | u8     | Number of input channels                    |
 | channel_layout | String | Channel layout ie. mono, stereo             |
 
 
-
 ### Output
 
-| Option       | Type   | Description                      |
-|--------------|--------|----------------------------------|
-| channels     | String | Number of output channels        |
-| container    | String | Container type ie. ogg           |
-| output       | String | Output file or destination       |
-| sample_rate  | u32    | Output sample frequency          |
-| content_type | String | Content type ie. application/ogg |
+| Option        | Type   | Description                       |
+|---------------|--------|-----------------------------------|
+| channels      | String | Number of output channels         |
+| container     | String | Container type ie. ogg            |
+| output        | String | Output file or destination        |
+| sample_rate   | u32    | Output sample frequency           |
+| sample_format | String | Output sample format ie. s16, s32 |
+| content_type  | String | Content type ie. application/ogg  |
 
 ### Example Configuration
 ```toml
