@@ -46,8 +46,7 @@ struct StreamInput {
     sample_rate: Option<u32>,
     channels: Option<u8>,
     channel_layout: Option<String>,
-//    sample_format: Option<String>,
-
+    //    sample_format: Option<String>,
     codec: Option<String>,
 }
 
@@ -163,7 +162,7 @@ impl CommandConfig for StreamOutput {
             value.push(FORMAT_OPT.into());
             value.push(container.as_str().into());
         }
-        
+
         value.push(self.output.as_str().into());
         value
     }

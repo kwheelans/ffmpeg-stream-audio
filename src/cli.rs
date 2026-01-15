@@ -7,5 +7,5 @@ pub struct CliArgs {
     #[clap(value_parser)]
     pub configuration: PathBuf,
     #[clap(short, long, value_parser)]
-    pub log_level: Option<LevelFilter>
+    pub log_level: Option<LevelFilter>,
 }
