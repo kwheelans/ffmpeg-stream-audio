@@ -3,6 +3,7 @@ mod command;
 mod configuration;
 mod error;
 mod ui;
+mod download;
 
 use crate::cli::CliArgs;
 use crate::command::{CommandAction, command_orchestration};
@@ -19,6 +20,7 @@ use tokio::sync::{Mutex, mpsc};
 use tokio::task::JoinHandle;
 use tracing::level_filters::LevelFilter;
 use tracing::{debug, error, info};
+use crate::download::download_css_archive;
 
 #[derive(Debug)]
 struct AppState {
@@ -48,15 +50,25 @@ async fn main() -> ExitCode {
         .with_max_level(cli.log_level.unwrap_or(LevelFilter::INFO))
         .init();
 
-    match run(cli).await {
-        Err(error) => {
-            error!("{}", error);
-            ExitCode::FAILURE
+    if cli.download_pico_css {
+        match download_css_archive().await {
+            Ok(_) => ExitCode::SUCCESS,
+            Err(error) => {
+                error!("{}", error);
+                ExitCode::FAILURE
+            }
         }
-        Ok(code) => match code {
-            None => ExitCode::FAILURE,
-            Some(n) => ExitCode::from(n as u8),
-        },
+    } else {
+        match run(cli).await {
+            Err(error) => {
+                error!("{}", error);
+                ExitCode::FAILURE
+            }
+            Ok(code) => match code {
+                None => ExitCode::FAILURE,
+                Some(n) => ExitCode::from(n as u8),
+            },
+        }
     }
 }
 
