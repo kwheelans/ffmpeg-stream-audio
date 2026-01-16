@@ -1,17 +1,47 @@
 mod cli;
+mod command;
 mod configuration;
 mod error;
+mod ui;
 
 use crate::cli::CliArgs;
-use crate::configuration::{CommandConfig, StreamConfig};
+use crate::command::{CommandAction, command_orchestration};
+use crate::configuration::{CommandConfig, Configuration};
 use crate::error::Error;
+use crate::ui::serve_ui;
+use chrono::{DateTime, Local};
 use clap::Parser;
-use std::process::{ExitCode, Stdio};
-use tokio::process::Command;
+use std::ffi::OsString;
+use std::process::ExitCode;
+use std::sync::Arc;
+use tokio::sync::mpsc::Sender;
+use tokio::sync::{Mutex, mpsc};
+use tokio::task::JoinHandle;
 use tracing::level_filters::LevelFilter;
 use tracing::{debug, error, info};
 
-#[tokio::main(flavor = "current_thread")]
+#[derive(Debug)]
+struct AppState {
+    task_status: Mutex<TaskStatus>,
+    sender: Sender<CommandAction>,
+    ffmpeg_config: Vec<OsString>,
+    css: String,
+}
+
+#[derive(Debug, Default)]
+struct TaskStatus {
+    handle: Option<JoinHandle<Option<i32>>>,
+    message: String,
+    timestamp: DateTime<Local>,
+}
+
+impl TaskStatus {
+    pub fn running(&self) -> bool {
+        matches!(self.handle.as_ref(), Some(handle) if !handle.is_finished())
+    }
+}
+
+#[tokio::main()]
 async fn main() -> ExitCode {
     let cli = CliArgs::parse();
     tracing_subscriber::fmt()
@@ -31,19 +61,42 @@ async fn main() -> ExitCode {
 }
 
 async fn run(cli: CliArgs) -> Result<Option<i32>, Error> {
-    let config = StreamConfig::try_from(std::fs::read_to_string(cli.configuration)?.as_str())?;
+    let config = Configuration::try_from(std::fs::read_to_string(cli.configuration)?.as_str())?;
     debug!("{:?}", config);
 
-    let mut ffmpeg = Command::new("ffmpeg")
-        .stdout(Stdio::piped())
-        .args(config.to_vec())
-        .kill_on_drop(true)
-        .spawn()?;
+    // Initialize channel
+    let (sender, receiver) = mpsc::channel(5);
 
-    debug!("{:?}", ffmpeg);
+    // Initialize state
+    let state = Arc::new(AppState {
+        task_status: Mutex::new(TaskStatus::default()),
+        sender,
+        ffmpeg_config: config.ffmpeg().to_vec(),
+        css: config.ui().get_stylesheet_href(),
+    });
 
+    // Setup address to listen on
+    let listener = tokio::net::TcpListener::bind(format!(
+        "{}:{}",
+        config.ui().listen_address(),
+        config.ui().port()
+    ))
+    .await?;
+
+    // Start waiting for commands from UI
+    tokio::spawn(command_orchestration(receiver, state.clone()));
+
+    // Start UI and listen for kill signals
     let exit = tokio::select! {
-        process = ffmpeg.wait() => process?.code(),
+        ui = serve_ui(state.clone(), listener) => {
+            match ui {
+                Ok(_) => Some(0),
+                Err(e) => {
+                    error!("Error serving ui: {}", e);
+                    Some(1)
+                }
+            }
+        },
         exit = listen_for_shutdown() => Some(exit),
     };
 
@@ -52,7 +105,7 @@ async fn run(cli: CliArgs) -> Result<Option<i32>, Error> {
 
 #[cfg(unix)]
 async fn listen_for_shutdown() -> i32 {
-    use tokio::signal::unix::{signal, SignalKind};
+    use tokio::signal::unix::{SignalKind, signal};
     // Listen for SIGTERM and SIGINT to know when shutdown
     let mut sigterm =
         signal(SignalKind::terminate()).expect("unable to listen for terminate signal");
