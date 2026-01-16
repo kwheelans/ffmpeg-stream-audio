@@ -15,21 +15,21 @@ RUN cargo chef cook --release --recipe-path recipe.json
 # Build application
 COPY . .
 RUN cargo build --release --frozen --bin ffmpeg-stream-audio
-RUN ./target/release/ffmpeg-stream-audio --download-pico-css
+
+FROM ghcr.io/kwheelans/container-utils:0.1 AS css
+WORKDIR /app
+RUN container-utils pico-css-download
+
 
 # Final image
 FROM debian:13-slim
-
-RUN mkdir /ffmpeg-stream-audio /data
 WORKDIR /ffmpeg-stream-audio
-
 ENV PATH=/ffmpeg-stream-audio:$PATH \
 VERBOSITY=Info
 
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /ffmpeg-stream-audio/target/release/ffmpeg-stream-audio /ffmpeg-stream-audio
-COPY --from=builder /ffmpeg-stream-audio/css /ffmpeg-stream-audio/css
+COPY --from=css /app/css /ffmpeg-stream-audio/css
 VOLUME /config
-VOLUME /data
 
 CMD ["ffmpeg-stream-audio", "/config/config.toml"]
