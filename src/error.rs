@@ -9,5 +9,4 @@ pub enum Error {
     /// Pass-thru [`std::io::Error`].
     #[error("std::io Error: {0}")]
     IO(#[from] std::io::Error),
-
 }
