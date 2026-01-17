@@ -2,13 +2,13 @@ name: Docker
 
 on:
   workflow_dispatch:
-  push:
-    branches: ['main']
-    tags: [v*]
-    paths-ignore:
-      - '.github/**'
-      - 'tests/**'
-      - 'README.md'
+#  push:
+#    branches: ['main']
+#    tags: [v*]
+#    paths-ignore:
+#      - '.github/**'
+#      - 'tests/**'
+#      - 'README.md'
 
 
 concurrency:

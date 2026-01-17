@@ -1,4 +1,8 @@
 # v0.2.0
+## Feature
+- remove docker
+
+# v0.2.0
 ## Features
 - add Web UI
 - add docker 
