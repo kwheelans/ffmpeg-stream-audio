@@ -1,8 +1,5 @@
 # FFMPEG Stream Audio
-
-```shell
-ffmpeg -f alsa -i default -ar 48000 -ac 2 -c:a flac -compression_level 1 -f ogg -content_type 'application/ogg' "icecast://source:${SOURCE_PASSWORD}@${HOST}/stream"
-```
+Configuration wrapper around FFMPEG to steam audio
 
 ## Configuration
 
@@ -56,7 +53,6 @@ pico_css_color = "Indigo"
 [ffmpeg.general]
 hide_banner = true
 overwrite = true
-log_level = "info"
 
 [ffmpeg.input]
 input = "hw:2,0"
