@@ -22,7 +22,7 @@ RUN container-utils pico-css-download
 
 
 # Final image
-FROM debian:13-slim
+FROM linuxserver/ffmpeg:8.0.1
 WORKDIR /ffmpeg-stream-audio
 ENV PATH=/ffmpeg-stream-audio:$PATH \
 VERBOSITY=Info
@@ -32,4 +32,4 @@ COPY --from=builder /ffmpeg-stream-audio/target/release/ffmpeg-stream-audio /ffm
 COPY --from=css /app/css /ffmpeg-stream-audio/css
 VOLUME /config
 
-CMD ["ffmpeg-stream-audio", "/config/config.toml"]
+ENTRYPOINT ["ffmpeg-stream-audio", "/config/config.toml"]
