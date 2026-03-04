@@ -62,11 +62,11 @@ jobs:
           echo "$dir" >> $GITHUB_PATH
           cd "$dir"
           curl -LO "https://github.com/cross-rs/cross/releases/download/$CROSS_VERSION/cross-x86_64-unknown-linux-musl.tar.gz"
-          tar xf cross-x86_64-unknown-linux-musl.tar.gz
+          tar -xaf cross-x86_64-unknown-linux-musl.tar.gz
           echo "CARGO=cross" >> $GITHUB_ENV
 
       - name: Build Binary
-        run: ${{ env.CARGO }} build --release --bins --all-features --target ${{ matrix.target }}
+        run: ${{ env.CARGO }} build --release --bins --target ${{ matrix.target }}
 
       - name: Prepare Linux Binaries
         if: matrix.os == 'ubuntu-latest'
