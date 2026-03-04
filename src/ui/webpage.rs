@@ -3,7 +3,7 @@ use crate::command::CommandAction;
 use maud::{DOCTYPE, Markup, html};
 use std::sync::Arc;
 
-const PAGE_TITLE: &str = "Control Task Test";
+const PAGE_TITLE: &str = "FFMPEG Stream Audio";
 
 async fn base(css_path: &str) -> Markup {
     html! {
@@ -35,7 +35,6 @@ pub async fn index_page(state: Arc<AppState>) -> Markup {
         body {
             (title(PAGE_TITLE).await)
             main {
-                p {"This is the control task test"}
                 table {
                     thead {
                         td { "Task Status" }
