@@ -38,15 +38,13 @@ pub async fn index_page(state: Arc<AppState>) -> Markup {
                 p {"This is the control task test"}
                 table {
                     thead {
-                        td { "Task Running" }
                         td { "Task Status" }
                         td { "Timestamp "}
                     }
                     tbody {
                         tr {
-                            td { (task_status.running()) }
-                            td { (task_status.message.as_str()) }
-                            td { (task_status.timestamp.to_rfc3339()) }
+                            td { (task_status.status()) }
+                            td { (task_status.timestamp()) }
                         }
                     }
                 }

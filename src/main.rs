@@ -4,6 +4,7 @@ mod configuration;
 mod error;
 mod ui;
 
+use crate::StatusKind::{Running, Stopped};
 use crate::cli::CliArgs;
 use crate::command::{CommandAction, command_orchestration};
 use crate::configuration::{CommandConfig, Configuration};
@@ -14,11 +15,18 @@ use clap::Parser;
 use std::ffi::OsString;
 use std::process::ExitCode;
 use std::sync::Arc;
+use strum::Display;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::{Mutex, mpsc};
 use tokio::task::JoinHandle;
 use tracing::level_filters::LevelFilter;
 use tracing::{debug, error, info};
+
+#[derive(Debug, Display)]
+enum StatusKind {
+    Running,
+    Stopped,
+}
 
 #[derive(Debug)]
 struct AppState {
@@ -31,13 +39,27 @@ struct AppState {
 #[derive(Debug, Default)]
 struct TaskStatus {
     handle: Option<JoinHandle<Option<i32>>>,
-    message: String,
     timestamp: DateTime<Local>,
 }
 
 impl TaskStatus {
-    pub fn running(&self) -> bool {
+    fn is_running(&self) -> bool {
         matches!(self.handle.as_ref(), Some(handle) if !handle.is_finished())
+    }
+
+    pub fn status(&self) -> StatusKind {
+        match self.is_running() {
+            true => Running,
+            false => Stopped,
+        }
+    }
+
+    pub fn timestamp(&self) -> String {
+        self.timestamp.to_rfc3339()
+    }
+
+    pub fn set_timestamp_now(&mut self) {
+        self.timestamp = Local::now();
     }
 }
 

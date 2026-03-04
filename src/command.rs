@@ -1,6 +1,5 @@
 use crate::AppState;
 use crate::command::CommandAction::{Restart, Start, Stop};
-use chrono::Local;
 use std::ffi::OsString;
 use std::process::Stdio;
 use std::sync::Arc;
@@ -36,7 +35,10 @@ async fn start_command(state: Arc<AppState>) {
         Some(handle) if !handle.is_finished() => {
             warn!("Task is already running")
         }
-        _ => task_status.handle = Some(start_task(state.ffmpeg_config.clone())),
+        _ => {
+            task_status.set_timestamp_now();
+            task_status.handle = Some(start_task(state.ffmpeg_config.clone()))
+        }
     }
 }
 
@@ -49,8 +51,7 @@ async fn stop_command(state: Arc<AppState>) {
             if let Some(h) = task_status.handle.as_ref() {
                 h.abort();
                 task_status.handle = None;
-                task_status.message = "Task Stopped".into();
-                task_status.timestamp = Local::now();
+                task_status.set_timestamp_now();
             }
         }
 
