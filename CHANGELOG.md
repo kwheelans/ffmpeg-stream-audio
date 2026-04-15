@@ -1,3 +1,7 @@
+# v0.4.3
+## Changes
+- Update lockfile
+
 # v0.4.2
 ## Changes
 - Fix leftover webpage placeholder text
